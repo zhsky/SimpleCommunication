@@ -7,7 +7,6 @@
 #define _TIMERSTAMP_H_
 
 #include "Singleton.h"
-#include "Thread.h"
 #include "EventManager.h"
 #include <stdint.h>
 
@@ -20,14 +19,11 @@ public:
 	int start();
 	int stop();
 
-	void run_thread();
-
 	void handler_timeout(int64_t now);
 	void handler_ioinput();
 
 	void remove_timer();
 private:
-	sc::Thread thread_;
 	sc::EventManager event_manager_;
 	int timer_fd_ = 0;
 };

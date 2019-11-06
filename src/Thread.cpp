@@ -34,18 +34,18 @@ namespace sc
 		prctl(PR_SET_NAME, self->tname().c_str());
 		LOG_INFO("thread started:tid:%ld,rtid:%d,name:%s",pthread_self(),self->rtid(),self->tname().c_str());
 
-		pthread_cleanup_push(Thread::exit_handle,obj);
+		pthread_cleanup_push(Thread::pthread_cleanup,obj);
 		self->start_func();
 		pthread_cleanup_pop(1);
 
 		return NULL;
 	}
 
-	void Thread::exit_handle(void* obj)
+	void Thread::pthread_cleanup(void* obj)
 	{
 		Thread* self = static_cast<Thread*>(obj);
-		//TODO handle something
 		LOG_INFO("Thread exit %s",self->tname().c_str());
+		self->handle_exit();
 		return;
 	}
 
@@ -61,7 +61,7 @@ namespace sc
 
 	int Thread::start()
 	{
-		if(func_ == nullptr) return -1;
+		if(init_ == false) return -1;
 		if(int ret = pthread_create(&this->tid_,NULL,&Thread::inner_start,this); ret != 0)
 		{
 			LOG_ERROR("thread started FAILED,name:%s,ret:%d",this->tname().c_str(),ret);

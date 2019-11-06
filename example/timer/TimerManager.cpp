@@ -8,7 +8,19 @@
 #include <unistd.h>
 #include "Timestamp.h"
 
-void TimerManager::run_thread()
+void TimerManager::handler_timeout(int64_t now)
+{
+	int64_t count;
+	read(this->timer_fd_,&count,sizeof(count));
+	LOG_INFO("count:%d,timeout:%ld",count,now / USEC);
+}
+
+void TimerManager::remove_timer()
+{
+	event_manager_.remove_handle(this->timer_fd_);
+}
+
+int TimerManager::start()
 {
 	{
 		std::shared_ptr<sc::EventHandle> timer_handler(new sc::EventHandle(
@@ -25,33 +37,12 @@ void TimerManager::run_thread()
 			timer_handler = nullptr;
 		}
 	}
-
-	event_manager_.loop();
-}
-
-void TimerManager::handler_timeout(int64_t now)
-{
-	int64_t count;
-	read(this->timer_fd_,&count,sizeof(count));
-	LOG_INFO("count:%d,timeout:%ld",count,now / USEC);
-}
-
-void TimerManager::remove_timer()
-{
-	event_manager_.remove_handle(this->timer_fd_);
-}
-
-int TimerManager::start()
-{
-	if(this->thread_.is_init() == false)
-		this->thread_.init_func(std::bind(&TimerManager::run_thread,this),"test_thread");
-	this->thread_.start();
+	event_manager_.start_loop();
 	return 0;
 }
 
 int TimerManager::stop()
 {
 	event_manager_.ready_quit();
-	this->thread_.stop();
 	return 0;
 }

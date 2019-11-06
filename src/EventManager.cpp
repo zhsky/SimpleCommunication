@@ -25,6 +25,7 @@ namespace sc
 
 	EventManager::~EventManager()
 	{
+		if(!quit_) this->ready_quit();
 		::close(epoll_fd_);
 		this->handler_map_.clear();
 		this->loop_functions_.clear();
@@ -96,6 +97,13 @@ namespace sc
 		}
 		LOG_INFO("fd:%ld, name:%s",fd,handle_ptr->ename().c_str());
 		return;
+	}
+
+	void EventManager::start_loop()
+	{
+		if(this->loop_thread_.is_init()) return;
+		this->loop_thread_.init_func(std::bind(&EventManager::loop,this),"event_loop_thread");
+		this->loop_thread_.start();
 	}
 
 	void EventManager::loop()

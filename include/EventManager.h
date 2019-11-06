@@ -12,6 +12,7 @@
 #include <map>
 #include <mutex>
 #include <sys/epoll.h>
+#include <Thread.h>
 
 namespace sc
 {
@@ -24,12 +25,13 @@ namespace sc
 		int add_handle(std::shared_ptr<sc::EventHandle>&&);
 		int remove_handle(int fd);
 
-		void loop();
-		void ready_quit(){quit_ = true;}
+		void start_loop();
+		void ready_quit(){quit_ = true;this->loop_thread_.stop();}
 	private:
 		void do_add_handle(std::shared_ptr<sc::EventHandle>& handle_ptr);
 		void do_remove_handle(int fd);
 
+		void loop();
 		void loop_func();
 		void loop_io();
 	private:
@@ -42,6 +44,7 @@ namespace sc
   		typedef std::vector<struct epoll_event> EventList;
   		EventList events_;
 
+  		Thread loop_thread_;
   		bool quit_;
 	};//class EventManager
 }//namespace sc

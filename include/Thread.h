@@ -28,6 +28,7 @@ namespace sc
 		int start();
 		int stop();
 
+		virtual void handle_exit(){return;};
 	public:
 		pid_t rtid(){return rtid_;}
 		pthread_t tid(){return tid_;}
@@ -36,7 +37,7 @@ namespace sc
 
 		void start_func(){func_();}
 		static void* inner_start(void* obj);
-		static void exit_handle(void* obj);
+		static void pthread_cleanup(void* obj);
 
 		static void sleep_usec(int64_t usec);
 	private:
