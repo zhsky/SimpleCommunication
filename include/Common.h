@@ -23,5 +23,7 @@ namespace sc
 	typedef std::function<void(uint32_t)> IO_FUNC;
 	typedef std::function<void(int64_t)> TIME_FUNC;
 
+	#define GUARD_LOCK(OBJ,MUTEX) std::lock_guard<std::mutex> OBJ(MUTEX)
+
 }//namespace sc
 #endif

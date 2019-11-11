@@ -52,6 +52,7 @@ namespace sc
 	int Thread::init_func(VOID_FUNC func,const std::string&& thread_name)
 	{
 		func_ = std::move(func);
+		exit_func_ = nullptr;
 		tname_ = std::move(thread_name);
 		tid_ = 0;
 		rtid_ = 0;
@@ -80,6 +81,12 @@ namespace sc
 		pthread_t tid = this->tid_;
 		this->tid_ = 0;
 		return pthread_join(tid,NULL);
+	}
+
+	void Thread::handle_exit()
+	{
+		if(exit_func_ != nullptr) exit_func_();
+		return;
 	}
 
 	void Thread::sleep_usec(int64_t usec)

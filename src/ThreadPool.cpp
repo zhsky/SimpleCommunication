@@ -5,6 +5,7 @@
 */
 
 #include <ThreadPool.h>
+#include <Thread.h>
 
 namespace sc
 {

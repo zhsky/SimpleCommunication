@@ -19,16 +19,17 @@ namespace sc
 	{
 	public:
 		explicit Thread(VOID_FUNC func,const std::string&& thread_name = std::string()):
-			init_(true),func_(std::move(func)),tname_(thread_name),tid_(0),rtid_(0){}
+			init_(true),func_(std::move(func)),exit_func_(nullptr),tname_(thread_name),tid_(0),rtid_(0){}
 
 		Thread() = default;
 		~Thread() = default;
 		int init_func(VOID_FUNC func,const std::string&& thread_name = std::string());
+		void bind_exit_func(VOID_FUNC func){exit_func_ = std::move(func);};
 		bool is_init() {return this->init_;}
 		int start();
 		int stop();
 
-		virtual void handle_exit(){return;};
+		void handle_exit();
 	public:
 		pid_t rtid(){return rtid_;}
 		pthread_t tid(){return tid_;}
@@ -43,6 +44,7 @@ namespace sc
 	private:
 		bool init_;
 	  	VOID_FUNC func_;
+	  	VOID_FUNC exit_func_;
 		std::string tname_;
 		pthread_t tid_;
 		pid_t rtid_;

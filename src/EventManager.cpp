@@ -11,8 +11,7 @@
 
 #define MAX_EVENT 1024
 #define EVENT_TIMEOUT 10000
-#define GUARD_LOCK(MUTEX) std::lock_guard<std::mutex> _mutex_lock(MUTEX);
-	
+
 namespace sc
 {
 	EventManager::EventManager():events_(MAX_EVENT),quit_(false)
@@ -35,7 +34,7 @@ namespace sc
 	{
 		if(quit_ == true) return -1;
 		if(handle_ptr->fd() <= 0) return -2;
-		GUARD_LOCK(func_mutex_);
+		GUARD_LOCK(_lock_guard,func_mutex_);
 		this->loop_functions_.push_back(std::bind(&EventManager::do_add_handle,this,handle_ptr));
 		return 0;
 	}
@@ -44,7 +43,7 @@ namespace sc
 	{
 		if(quit_ == true) return -1;
 		if(fd <= 0) return -2;
-		GUARD_LOCK(func_mutex_);
+		GUARD_LOCK(_lock_guard,func_mutex_);
 		this->loop_functions_.push_back(std::bind(&EventManager::do_remove_handle,this,fd));
 		return 0;
 	}
@@ -117,7 +116,7 @@ namespace sc
 
 	void EventManager::loop_func()
 	{
-		GUARD_LOCK(func_mutex_);
+		GUARD_LOCK(_lock_guard,func_mutex_);
 		for(const auto& func : this->loop_functions_)
 		{
 			func();

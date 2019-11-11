@@ -7,7 +7,6 @@
 #define _THREADPOOL_H_
 
 #include <noncopyable.h>
-#include <Thread.h>
 #include <mutex>
 #include <list>
 #include <functional>
@@ -18,6 +17,7 @@
 namespace sc
 {
 
+class Thread;
 class ThreadPool:noncopyable
 {
 public:
