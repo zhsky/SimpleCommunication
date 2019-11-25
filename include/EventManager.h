@@ -6,46 +6,59 @@
 #ifndef _EVENTMANAGER_H_
 #define _EVENTMANAGER_H_
 
-#include "EventHandle.h"
 #include <memory>
-#include <vector>
+#include <list>
 #include <map>
 #include <mutex>
 #include <sys/epoll.h>
+#include <assert.h>
 #include <Thread.h>
+#include <pthread.h>
 
 namespace sc
 {
+	class EventHandle;
+
 	class EventManager:noncopyable
 	{
 	public:
 		EventManager();
 		~EventManager();
 
-		int add_handle(std::shared_ptr<sc::EventHandle>&&);
+		EventHandle* get_handle(int fd);
+		int add_handle(EventHandle*);
+		void update_handle(int fd);
 		int remove_handle(int fd);
+		void do_remove_handle(int fd);//loop线程调用
+
+		void run_in_handle_loop(VOID_FUNC func);
 
 		void start_loop();
-		void ready_quit(){quit_ = true;this->loop_thread_.stop();}
+		void stop_loop();
 	private:
-		void do_add_handle(std::shared_ptr<sc::EventHandle>& handle_ptr);
-		void do_remove_handle(int fd);
+		void assert_in_thread(){assert(tid_ == pthread_self());}
+		int do_update_handle(int fd);
+		void do_add_handle(EventHandle* handle_ptr);
 
+		void ready_quit(){quit_ = true;this->loop_thread_.stop();}
 		void loop();
 		void loop_func();
 		void loop_io();
 	private:
+		pthread_t tid_;
 		int epoll_fd_;
-		std::map<int,std::shared_ptr<sc::EventHandle> > handler_map_;
+		std::map<int,EventHandle* > handler_map_;//loop_thread_线程读写，其他线程读
 
-		std::mutex func_mutex_;
-		std::vector<VOID_FUNC> loop_functions_;
+		std::recursive_mutex func_mutex_;
+		std::list<VOID_FUNC> loop_functions_read_;
+		std::list<VOID_FUNC> loop_functions_write_;
 
   		typedef std::vector<struct epoll_event> EventList;
   		EventList events_;
 
   		Thread loop_thread_;
   		bool quit_;
+		pthread_rwlock_t rwlock_;
 	};//class EventManager
 }//namespace sc
 

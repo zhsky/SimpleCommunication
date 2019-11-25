@@ -15,15 +15,15 @@ using namespace std;
 void write_buff(std::shared_ptr<Buffer>& buffer)
 {
 	LOG_INFO("%d,%d",buffer->readableBytes(),buffer->writeableBytes());
-	buffer->writeInt64(64);
+	buffer->writeInt64(uint64_t(64));
 	LOG_INFO("%d,%d",buffer->readableBytes(),buffer->writeableBytes());
-	buffer->writeInt16(16);
+	buffer->writeInt16(uint16_t(16));
 	LOG_INFO("%d,%d",buffer->readableBytes(),buffer->writeableBytes());
 	buffer->writeString("string");
 	LOG_INFO("%d,%d",buffer->readableBytes(),buffer->writeableBytes());
-	buffer->writeInt32(32);
+	buffer->writeInt32(uint32_t(32));
 	LOG_INFO("%d,%d",buffer->readableBytes(),buffer->writeableBytes());
-	buffer->writeInt8(8);
+	buffer->writeInt8(uint8_t(8));
 	LOG_INFO("%d,%d",buffer->readableBytes(),buffer->writeableBytes());
 }
 

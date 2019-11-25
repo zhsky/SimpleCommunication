@@ -5,12 +5,10 @@
 */
 
 #include <ThreadPool.h>
-#include <Thread.h>
+#include <assert.h>
 
 namespace sc
 {
-
-#define UNIQUE_LOCK(MUTEX) std::unique_lock<std::mutex> _unique_lock(MUTEX);
 
 ThreadPool::~ThreadPool()
 {
@@ -20,9 +18,12 @@ ThreadPool::~ThreadPool()
 
 void ThreadPool::start(int thread_n)
 {
+	if(this->running_)
+	{
+		LOG_WARNING("WARN RUNNING");
+		return;
+	}
 	LOG_INFO("ThreadPool start thread number:%d",thread_n);
-	if(this->threads_.empty() == false) return;
-
 	this->running_ = true;
 	for(int i = 0; i < thread_n; ++i)
 	{
@@ -37,8 +38,9 @@ void ThreadPool::stop()
 {
 	LOG_INFO("ThreadPool stop");
 	{
-		UNIQUE_LOCK(list_mutex_);
+		GUARD_LOCK(_unique_lock,list_mutex_);
 		this->running_ = false;
+		this->task_list_.clear();
 		out_cond_.notify_all();
 	}
 
@@ -49,7 +51,7 @@ void ThreadPool::stop()
 	this->threads_.clear();
 }
 
-void ThreadPool::accept_task(TaskFun task,std::string&& task_name)
+void ThreadPool::accept_task(TaskFun task)
 {
 	if(this->threads_.empty()) 
 	{
@@ -58,23 +60,45 @@ void ThreadPool::accept_task(TaskFun task,std::string&& task_name)
 	}
 	else
 	{
-		UNIQUE_LOCK(list_mutex_);
-		if(max_tasks_ > 0)
+		if(this->task_list_.size() / this->threads_.size() > 10)
 		{
-			while(this->task_list_.size() >= max_tasks_)
-			{
-				in_cond_.wait(_unique_lock);
-			}
+			LOG_WARNING("TOO MUCH TASK %d", this->task_list_.size());
+		}
+		{
+			GUARD_LOCK(_unique_lock,list_mutex_);
+			this->task_list_.emplace_back(task);
 		}
 
-		this->task_list_.push_back(std::make_pair(std::move(task),std::move(task_name)));
 		out_cond_.notify_all();
 	}
 }
 
-ThreadPool::Task ThreadPool::require_task()
+void ThreadPool::accept_task_list(std::list<TaskFun>& task_list)
 {
-	UNIQUE_LOCK(list_mutex_);
+	if(this->threads_.empty()) 
+	{
+		for(auto& task : task_list)
+			task();
+		return;
+	}
+	else
+	{
+		if(this->task_list_.size() / this->threads_.size() > 10)
+		{
+			LOG_WARNING("TOO MUCH TASK %d", this->task_list_.size());
+		}
+		{
+			GUARD_LOCK(_unique_lock,list_mutex_);
+			this->task_list_.splice(this->task_list_.end(),task_list);
+		}
+
+		out_cond_.notify_all();
+	}
+}
+
+ThreadPool::TaskFun ThreadPool::require_task()
+{
+	UNIQUE_LOCK(_unique_lock,list_mutex_);
 	while(this->running_ && this->task_list_.empty())
 	{
 		out_cond_.wait(_unique_lock);
@@ -84,14 +108,9 @@ ThreadPool::Task ThreadPool::require_task()
 	{
 		auto task = this->task_list_.front();
 		this->task_list_.pop_front();
-		if(max_tasks_ > 0)
-			in_cond_.notify_all();
-		return task;
+		return std::move(task);
 	}
-	_unique_lock.unlock();
-
-	TaskFun task;
-	return std::make_pair(task,"");
+	return TaskFun();
 }
 
 void ThreadPool::thread_loop()
@@ -101,19 +120,21 @@ void ThreadPool::thread_loop()
 		auto task = std::move(require_task());
 		try
 		{
-			if(task.first) task.first();
+			if(task) task();
 		}
 		catch(const std::exception& ex)
 		{
-			LOG_ERROR("ERROR EXCEPTION in function %s,what:%s",task.second.c_str(),ex.what());
+			LOG_ERROR("ERROR EXCEPTION what:%s",ex.what());
 			continue;
 		}
 		catch(...)
 		{
-			LOG_ERROR("ERROR UNCATCH EXCEPTION in function %s",task.second.c_str());
+			LOG_ERROR("ERROR UNCATCH EXCEPTION in function %s");
 			throw;
 		}
 	}
 }
+
+
 
 }//namespace sc

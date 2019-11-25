@@ -8,6 +8,7 @@
 #include <list>
 #include <map>
 #include <mutex>
+#include <assert.h>
 
 namespace sc
 {
@@ -22,7 +23,8 @@ public:
 	void push(T*);
 
 	void dump_info();
-	void shrink();//free all idle block
+	void shrink();
+	void free_all();
 private:
 	class Block: public std::list<T*>
 	{
@@ -34,11 +36,10 @@ private:
 	typedef std::pair<int64_t, Block> BlockNode;
 private:
 	BlockNode& make_new_block();
-	void free_all();
 private:
 	std::list<BlockNode> block_list_;
 	size_t block_size_;
-	std::mutex block_mutex_;
+	std::recursive_mutex block_mutex_;
 };
 
 
@@ -60,6 +61,7 @@ template <typename T>
 typename ObjectPool<T>::BlockNode& ObjectPool<T>::make_new_block()
 {
 	void *p = malloc(sizeof(T) * this->block_size_);
+	assert(p != nullptr);
 	int64_t key = reinterpret_cast<int64_t>(p);
 
 	Block obj_list;
@@ -92,6 +94,7 @@ template <typename T>
 void ObjectPool<T>::dump_info()
 {
 	GUARD_LOCK(_lock_guard,block_mutex_);
+	LOG_INFO("============");
 	int64_t total_memory = this->block_list_.size() * this->block_size_ * sizeof(T);
 	LOG_INFO("*****ObjectPool<%s> block_length:%d, block_size:%d,total_memory:%ld*****",
 		typeid(T).name(),this->block_list_.size(),this->block_size_,total_memory);
@@ -99,6 +102,7 @@ void ObjectPool<T>::dump_info()
 	{
 		LOG_INFO("*****ObjectPool<%s> IDLE:%d,begin:%ld,end:%ld*****",typeid(T).name(),obj_list.size(),obj_list._begin,obj_list._end);
 	}
+	LOG_INFO("============");
 }
 
 template <typename T>

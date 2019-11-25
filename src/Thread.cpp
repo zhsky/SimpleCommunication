@@ -62,7 +62,11 @@ namespace sc
 
 	int Thread::start()
 	{
-		if(init_ == false) return -1;
+		if(init_ == false || this->tid_ != 0) 
+		{
+			LOG_WARNING("WARN START,%d,%ld",init_,this->tid_);
+			return -1;
+		}
 		if(int ret = pthread_create(&this->tid_,NULL,&Thread::inner_start,this); ret != 0)
 		{
 			LOG_ERROR("thread started FAILED,name:%s,ret:%d",this->tname().c_str(),ret);

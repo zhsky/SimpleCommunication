@@ -21,7 +21,7 @@ namespace sc
 		explicit Thread(VOID_FUNC func,const std::string&& thread_name = std::string()):
 			init_(true),func_(std::move(func)),exit_func_(nullptr),tname_(thread_name),tid_(0),rtid_(0){}
 
-		Thread() = default;
+		Thread():init_(true),func_(nullptr),exit_func_(nullptr),tname_(""),tid_(0),rtid_(0){}
 		~Thread() = default;
 		int init_func(VOID_FUNC func,const std::string&& thread_name = std::string());
 		void bind_exit_func(VOID_FUNC func){exit_func_ = std::move(func);};

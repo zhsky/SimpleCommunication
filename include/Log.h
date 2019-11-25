@@ -11,6 +11,9 @@
 #include <cstring>
 #include <execinfo.h>
 
+namespace sc
+{
+
 template<typename... Args>
 void log(const std::string& fmt, Args... args)
 {
@@ -46,5 +49,7 @@ void log_trace(const std::string& fmt, Args... args)
 #else
 #define LOG_DEBUG(FMT, ...)
 #endif	//DEBUG_MODULE
+
+}//namespace sc
 
 #endif	//_LOG_H_

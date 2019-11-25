@@ -3,19 +3,25 @@
 * @Author: Payton
 * @Last  : Payton
 */
-#include "EventManager.h"
-#include "Timestamp.h"
+#include <EventManager.h>
+#include <EventHandle.h>
+#include <Timestamp.h>
+#include <ThreadMutex.h>
 #include <errno.h>
 #include <cstring>
 #include <unistd.h>
 
 #define MAX_EVENT 1024
-#define EVENT_TIMEOUT 10000
+#define EVENT_TIMEOUT 1
 
 namespace sc
 {
 	EventManager::EventManager():events_(MAX_EVENT),quit_(false)
 	{
+		pthread_rwlockattr_t attr;
+		pthread_rwlockattr_init(&attr);
+		pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+		::pthread_rwlock_init(&rwlock_, &attr);
 		if(epoll_fd_ = epoll_create1(EPOLL_CLOEXEC); epoll_fd_ < -1)
 		{
 			LOG_ERROR("epoll_create ERROR,%d,%s",errno,strerror(errno));
@@ -24,18 +30,51 @@ namespace sc
 
 	EventManager::~EventManager()
 	{
-		if(!quit_) this->ready_quit();
+		this->stop_loop();
+		pthread_rwlock_destroy(&rwlock_);
 		::close(epoll_fd_);
-		this->handler_map_.clear();
-		this->loop_functions_.clear();
+		epoll_fd_= 0;
 	}
 
-	int EventManager::add_handle(std::shared_ptr<sc::EventHandle>&& handle_ptr)
+	EventHandle* EventManager::get_handle(int fd)
+	{
+		RGUARD_LOCK(__guard_lock,rwlock_);
+		if(auto iter = handler_map_.find(fd);iter != handler_map_.end())
+			return iter->second;
+		return nullptr;
+	}
+
+	void EventManager::update_handle(int fd)
+	{
+		this->run_in_handle_loop(std::bind(&EventManager::do_update_handle,this,fd));
+	}
+	
+	int EventManager::do_update_handle(int fd)
+	{
+		EventHandle* handle_ptr = this->get_handle(fd);
+		if(handle_ptr == nullptr) return -1;
+
+		struct epoll_event event;
+		memset(&event, 0, sizeof(event));
+
+		event.data.fd = handle_ptr->fd();
+		event.events |= handle_ptr->event_flag();
+
+		if(::epoll_ctl(this->epoll_fd_,EPOLL_CTL_MOD,event.data.fd,&event) < 0)
+		{
+			perror("epoll_ctl EPOLL_CTL_MOD:");
+			LOG_ERROR("epoll_ctl ERROR EPOLL_CTL_MOD fd:%d, writev %s",event.data.fd,strerror(errno));
+			return -1;
+		}
+
+		return 0;
+	}
+
+	int EventManager::add_handle(EventHandle* handle_ptr)
 	{
 		if(quit_ == true) return -1;
 		if(handle_ptr->fd() <= 0) return -2;
-		GUARD_LOCK(_lock_guard,func_mutex_);
-		this->loop_functions_.push_back(std::bind(&EventManager::do_add_handle,this,handle_ptr));
+		this->run_in_handle_loop(std::bind(&EventManager::do_add_handle,this,handle_ptr));
 		return 0;
 	}
 
@@ -43,13 +82,19 @@ namespace sc
 	{
 		if(quit_ == true) return -1;
 		if(fd <= 0) return -2;
-		GUARD_LOCK(_lock_guard,func_mutex_);
-		this->loop_functions_.push_back(std::bind(&EventManager::do_remove_handle,this,fd));
+		this->run_in_handle_loop(std::bind(&EventManager::do_remove_handle,this,fd));
 		return 0;
 	}
 
-	void EventManager::do_add_handle(std::shared_ptr<sc::EventHandle>& handle_ptr)
+	void EventManager::run_in_handle_loop(VOID_FUNC func)
 	{
+		GUARD_LOCK(_lock_guard,func_mutex_);
+		this->loop_functions_write_.emplace_back(func);
+	}
+
+	void EventManager::do_add_handle(EventHandle* handle_ptr)
+	{
+		assert_in_thread();
 		const std::string& event_name = handle_ptr->ename();
 		if(handler_map_.find(handle_ptr->fd()) != handler_map_.end())
 		{
@@ -63,13 +108,19 @@ namespace sc
 		event.data.fd = handle_ptr->fd();
 		event.events |= handle_ptr->event_flag();
 
-		handler_map_.insert(std::make_pair(handle_ptr->fd(),handle_ptr));
-		handle_ptr = nullptr;
+		{
+			WGUARD_LOCK(__guard_lock,rwlock_);
+			handler_map_[handle_ptr->fd()] = handle_ptr;
+		}
 
 		if(::epoll_ctl(this->epoll_fd_,EPOLL_CTL_ADD,event.data.fd,&event) < 0)
 		{
-			LOG_ERROR("epoll_ctl ERROR EPOLL_CTL_ADD");
-			handler_map_.erase(event.data.fd);
+			perror("epoll_ctl EPOLL_CTL_ADD:");
+			LOG_ERROR("epoll_ctl ERROR EPOLL_CTL_ADD fd:%d, writev %s",event.data.fd,strerror(errno));
+			{
+				WGUARD_LOCK(__guard_lock,rwlock_);
+				handler_map_.erase(event.data.fd);
+			}
 			return;
 		}
 		LOG_INFO("fd:%ld, name:%s",event.data.fd,event_name.c_str());
@@ -78,35 +129,58 @@ namespace sc
 
 	void EventManager::do_remove_handle(int fd)
 	{
-		if(handler_map_.find(fd) == handler_map_.end())
+		assert_in_thread();
+		EventHandle* handle_ptr = nullptr;
+		
+		if(auto iter = handler_map_.find(fd);iter == handler_map_.end())
 		{
 			LOG_ERROR("ERROR not found %ld",fd);
 			return;
 		}
-		std::shared_ptr<sc::EventHandle> handle_ptr = handler_map_[fd];
-		handler_map_.erase(fd);
+		else
+		{
+			handle_ptr = iter->second;
+			{
+				WGUARD_LOCK(__guard_lock,rwlock_);
+				handler_map_.erase(iter);
+			}
+		}
 
-		struct epoll_event event;
-		memset(&event, 0, sizeof(event));
-		if(::epoll_ctl(this->epoll_fd_,EPOLL_CTL_DEL,fd,&event) < 0)
+		if(::epoll_ctl(this->epoll_fd_,EPOLL_CTL_DEL,fd,nullptr) < 0)
 		{
 			perror("epoll_ctl:");
 			LOG_ERROR("epoll_ctl ERROR EPOLL_CTL_DEL %ld,errno:%d,%s",fd,errno,strerror(errno));
 			return;
 		}
 		LOG_INFO("fd:%ld, name:%s",fd,handle_ptr->ename().c_str());
+		handle_ptr->recycle_self();
 		return;
 	}
 
 	void EventManager::start_loop()
 	{
-		if(this->loop_thread_.is_init()) return;
+		quit_ = false;
 		this->loop_thread_.init_func(std::bind(&EventManager::loop,this),"event_loop_thread");
 		this->loop_thread_.start();
 	}
 
+	void EventManager::stop_loop()
+	{
+		if(!quit_) this->ready_quit();
+		for(auto& [fd,handle_ptr] : handler_map_)
+		{
+			::epoll_ctl(this->epoll_fd_,EPOLL_CTL_DEL,fd,nullptr);
+			handle_ptr->recycle_self();
+		}
+		this->handler_map_.clear();
+		this->loop_functions_read_.clear();
+		this->loop_functions_write_.clear();
+		this->events_.clear();
+	}
+
 	void EventManager::loop()
 	{
+		this->tid_ = pthread_self();
 		while(!quit_)
 		{
 			this->loop_func();
@@ -116,19 +190,25 @@ namespace sc
 
 	void EventManager::loop_func()
 	{
-		GUARD_LOCK(_lock_guard,func_mutex_);
-		for(const auto& func : this->loop_functions_)
+		{
+			GUARD_LOCK(_lock_guard,func_mutex_);
+			if(loop_functions_read_.empty() && loop_functions_write_.empty()) return;
+			this->loop_functions_read_.splice(loop_functions_read_.end(),this->loop_functions_write_);
+		}
+		for(const auto& func : this->loop_functions_read_)
 		{
 			func();
 		}
-		this->loop_functions_.clear();
+		this->loop_functions_read_.clear();
 	}
 
 	void EventManager::loop_io()
 	{
-		int fd_num = ::epoll_wait(this->epoll_fd_, &*(this->events_.begin()), static_cast<int>(this->events_.size()), EVENT_TIMEOUT);
+		int fd_num = ::epoll_wait(this->epoll_fd_, &*(this->events_.begin()), this->events_.size(), EVENT_TIMEOUT);
+		if(fd_num == 0) return;
 		if(fd_num < 0 && errno != EINTR)
 		{
+			perror("epoll_wait:");
 			LOG_ERROR("epoll_wait ERROR:%d,%s",errno,strerror(errno));
 			return ;
 		}
@@ -140,7 +220,7 @@ namespace sc
 		{
 			if(auto iter = handler_map_.find(this->events_[i].data.fd); iter != handler_map_.end())
 			{
-				iter->second->run_func(long_unixstamp(),this->events_[i].events);
+				iter->second->run_func(long_unixstamp(),this->events_[i].data.fd,this->events_[i].events);
 			}
 		}
 	}

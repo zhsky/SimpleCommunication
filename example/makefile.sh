@@ -31,6 +31,7 @@ $1_LDFLAGS=-lpthread
 }
 
 
+echo "AM_CXXFLAGS=-std=c++17 -g -O0"
 echo "ACLOCAL_AMFLAGS=-I m4"
 echo "DEFS =-DDEBUG"
 

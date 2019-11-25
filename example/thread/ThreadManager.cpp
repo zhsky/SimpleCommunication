@@ -7,6 +7,7 @@
 #include <cstring>
 #include <cstdlib>
 
+using namespace sc;
 void ThreadManager::start()
 {
 	this->runing_ = true;
@@ -34,11 +35,9 @@ void ThreadManager::stop()
 
 void ThreadManager::gen_task()
 {
-	char tid[1024] = {'\0'};
-	snprintf(tid,1023,"task_pid-%ld",pthread_self());
 	while(this->runing_)
 	{
-		this->tpool_.accept_task(std::bind(&ThreadManager::handle_task,this),tid);
+		this->tpool_.accept_task(std::bind(&ThreadManager::handle_task,this));
 		int waits =  std::rand() % 1000000;
 		sc::Thread::sleep_usec(waits);
 	}

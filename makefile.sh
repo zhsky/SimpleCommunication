@@ -1,8 +1,8 @@
 #!/bin/sh
 echo "
-AM_CXXFLAGS=-std=c++17
-libsc_la_CFLAGS=-Wall -Wno-reorder -O0 -g -fmessage-length=0 -std=c++17 -ldl -rdynamic
-libsc_la_CXXFLAGS=-Wall -Wno-reorder -O0 -g -fmessage-length=0 -std=c++17 -ldl -rdynamic
+AM_CXXFLAGS=-std=c++17 -g -O0
+libsc_la_CFLAGS=-Wall -Wno-reorder -g -O0 -g -fmessage-length=0 -std=c++17 -ldl -rdynamic
+libsc_la_CXXFLAGS=-Wall -Wno-reorder -g -O0 -g -fmessage-length=0 -std=c++17 -ldl -rdynamic
 DEFS =-DDEBUG
 "
 

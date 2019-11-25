@@ -4,14 +4,19 @@
 * @Last  : Payton
 */
 #include <vector>
+#include <memory>
 #include <Log.h>
 #include <ObjectPool.h>
 
+using namespace sc;
+
+class Simple;
+sc::ObjectPool<Simple> pool;
 class Simple
 {
 public:
-	Simple():size_(0){}
-	~Simple(){}
+	Simple():size_(0){LOG_INFO("Simple");}
+	~Simple(){LOG_INFO("~Simple");}
 
 	void push(int x){vec_.push_back(x);size_ = vec_.size();}
 	void info(){
@@ -19,13 +24,30 @@ public:
 		for(auto i: vec_)
 			LOG_INFO("Simple vec %d",i);
 	}
-
+	void operator delete(void *p)
+	{
+		LOG_INFO("delete");
+		Simple* ptr = static_cast<Simple*>(p);
+		pool.push(ptr);
+	}
 	std::vector<int> vec_;
 	size_t size_;
 };
+
+void func1()
+{
+	std::shared_ptr<Simple> p(pool.pop());
+	pool.dump_info();
+}
+
 int main()
 {
-	sc::ObjectPool<Simple> pool(3);
+	func1();
+	return 0;
+}
+
+void func()
+{
 	std::list<Simple*> obj_list;
 	LOG_INFO("pop");
 	for(int i = 0; i  < 7; ++i)
@@ -53,6 +75,4 @@ int main()
 
 	ptr = pool.pop();
 	ptr->info();
-
-	return 0;
 }

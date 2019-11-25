@@ -15,7 +15,7 @@ libtoolize --force
 automake --add-missing
 autoconf
 
-./configure --prefix=`pwd`
+./configure --prefix=`pwd` CXXFLAGS=
 if [ $? -ne 0 ];then
     exit -1;
 fi;

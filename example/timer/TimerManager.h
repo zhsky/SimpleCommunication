@@ -9,6 +9,8 @@
 #include "Singleton.h"
 #include "EventManager.h"
 #include <stdint.h>
+#include <EventHandle.h>
+#include <ObjectPool.h>
 
 class TimerManager
 {
@@ -25,6 +27,8 @@ public:
 	void remove_timer();
 private:
 	sc::EventManager event_manager_;
+
+	sc::ObjectPool<sc::EventHandle> event_pool_;
 	int timer_fd_ = 0;
 };
 

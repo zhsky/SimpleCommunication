@@ -16,40 +16,50 @@ namespace sc
 class Buffer
 {
 public:
-	explicit Buffer(size_t init_size = 1024):buff_(init_size),read_index_(0),write_index_(0){}
+	explicit Buffer(size_t init_size = 8 * 1024):buff_(init_size),read_index_(0),write_index_(0){}
 
+	//=======================================| Int8 |=======================================
 	void writeInt8(int8_t data)
 	{
 		append(&data,sizeof(int8_t));
 	}
-	void writeInt16(int16_t data)
+	void writeInt8(uint8_t data)
 	{
-		int16_t v = htobe16(data);
-		append(&v,sizeof(int16_t));
+		append(&data,sizeof(uint8_t));
 	}
-	void writeInt32(int32_t data)
-	{
-		int32_t v = htobe32(data);
-		append(&v,sizeof(int32_t));
-	}
-	void writeInt64(int64_t data)
-	{
-		int64_t v = htobe64(data);
-		append(&v,sizeof(int64_t));
-	}
-	void writeString(const std::string& data)
-	{
-		uint16_t len = data.length();
-		writeInt16(len);
-		if(len <= 0) return;
-		append(data.c_str(),len);
-	}
-
 	void peekInt8(int8_t& data)
 	{
 		assert(is_readable(sizeof(int8_t)));
 		memcpy(&data,readptr(),sizeof(int8_t));
 		return;
+	}
+	void peekInt8(uint8_t& data)
+	{
+		assert(is_readable(sizeof(uint8_t)));
+		memcpy(&data,readptr(),sizeof(uint8_t));
+		return;
+	}
+	void readInt8(int8_t& data)
+	{
+		peekInt8(data);
+		read_index_ += sizeof(int8_t);
+	}
+	void readInt8(uint8_t& data)
+	{
+		peekInt8(data);
+		read_index_ += sizeof(uint8_t);
+	}
+
+	//=======================================| Int16 |=======================================
+	void writeInt16(int16_t data)
+	{
+		int16_t v = htobe16(data);
+		append(&v,sizeof(int16_t));
+	}
+	void writeInt16(uint16_t data)
+	{
+		int16_t v = htobe16(data);
+		append(&v,sizeof(uint16_t));
 	}
 	void peekInt16(int16_t& data)
 	{
@@ -58,6 +68,35 @@ public:
 		data = be16toh(data);
 		return;
 	}
+	void peekInt16(uint16_t& data)
+	{
+		assert(is_readable(sizeof(uint16_t)));
+		memcpy(&data,readptr(),sizeof(uint16_t));
+		data = be16toh(data);
+		return;
+	}
+	void readInt16(int16_t& data)
+	{
+		peekInt16(data);
+		read_index_ += sizeof(int16_t);
+	}
+	void readInt16(uint16_t& data)
+	{
+		peekInt16(data);
+		read_index_ += sizeof(uint16_t);
+	}
+
+	//=======================================| Int32 |=======================================
+	void writeInt32(int32_t data)
+	{
+		int32_t v = htobe32(data);
+		append(&v,sizeof(int32_t));
+	}
+	void writeInt32(uint32_t data)
+	{
+		int32_t v = htobe32(data);
+		append(&v,sizeof(uint32_t));
+	}
 	void peekInt32(int32_t& data)
 	{
 		assert(is_readable(sizeof(int32_t)));
@@ -65,12 +104,66 @@ public:
 		data = be32toh(data);
 		return;
 	}
+	void peekInt32(uint32_t& data)
+	{
+		assert(is_readable(sizeof(uint32_t)));
+		memcpy(&data,readptr(),sizeof(uint32_t));
+		data = be32toh(data);
+		return;
+	}
+	void readInt32(int32_t& data)
+	{
+		peekInt32(data);
+		read_index_ += sizeof(int32_t);
+	}
+	void readInt32(uint32_t& data)
+	{
+		peekInt32(data);
+		read_index_ += sizeof(uint32_t);
+	}
+
+	//=======================================| Int64 |=======================================
+	void writeInt64(int64_t data)
+	{
+		int64_t v = htobe64(data);
+		append(&v,sizeof(int64_t));
+	}
+	void writeInt64(uint64_t data)
+	{
+		int64_t v = htobe64(data);
+		append(&v,sizeof(uint64_t));
+	}
 	void peekInt64(int64_t& data)
 	{
 		assert(is_readable(sizeof(int64_t)));
 		memcpy(&data,readptr(),sizeof(int64_t));
 		data = be64toh(data);
 		return;
+	}
+	void peekInt64(uint64_t& data)
+	{
+		assert(is_readable(sizeof(uint64_t)));
+		memcpy(&data,readptr(),sizeof(uint64_t));
+		data = be64toh(data);
+		return;
+	}
+	void readInt64(int64_t& data)
+	{
+		peekInt64(data);
+		read_index_ += sizeof(int64_t);
+	}
+	void readInt64(uint64_t& data)
+	{
+		peekInt64(data);
+		read_index_ += sizeof(uint64_t);
+	}
+	//=======================================| string |=======================================
+	void writeString(const std::string& data)
+	{
+		uint16_t len = data.length();
+		writeInt16(len);
+		if(len <= 0) return;
+		append(data.c_str(),len);
 	}
 	void peekString(std::string& data)
 	{
@@ -80,27 +173,6 @@ public:
 		assert(is_readable(sizeof(int16_t) + len));
 		data.resize(len);
 		memcpy(const_cast<char*>(data.c_str()),readptr() + sizeof(int16_t),len);
-	}
-
-	void readInt8(int8_t& data)
-	{
-		peekInt8(data);
-		read_index_ += sizeof(int8_t);
-	}
-	void readInt16(int16_t& data)
-	{
-		peekInt16(data);
-		read_index_ += sizeof(int16_t);
-	}
-	void readInt32(int32_t& data)
-	{
-		peekInt32(data);
-		read_index_ += sizeof(int32_t);
-	}
-	void readInt64(int64_t& data)
-	{
-		peekInt64(data);
-		read_index_ += sizeof(int64_t);
 	}
 	void readString(std::string& data)
 	{
@@ -165,7 +237,6 @@ public:
 		std::swap(write_index_,oth.write_index_);
 		buff_.swap(oth.buff_);
 	}
-private:
 	void ensureWriteable(size_t len)
 	{
 		if(writeableBytes() < len)
