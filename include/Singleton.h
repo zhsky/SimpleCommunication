@@ -9,7 +9,6 @@
 #include "noncopyable.h"
 #include <pthread.h>
 #include <stdlib.h>
-#include <Log.h>
 
 namespace sc
 {
@@ -34,7 +33,6 @@ public:
 		if(instance_ != nullptr) 
 		{
 			delete instance_;
-			LOG_INFO("%s destory!",typeid(T).name());
 		}
 		instance_ = nullptr;
 
@@ -43,7 +41,6 @@ private:
 	static void init()
 	{
 		instance_ = new T();
-		LOG_INFO("new instance %s",typeid(T).name());
 		atexit(destory);
 	}
 

@@ -4,7 +4,8 @@
 * @Last  : Payton
 */
 
-#include "EventHandle.h"
+#include <EventHandle.h>
+#include <Log.h>
 #include <sys/timerfd.h>
 #include <unistd.h>
 #include <sys/epoll.h>
@@ -42,10 +43,10 @@ namespace sc
 		{
 			struct itimerspec ts;
 
-			ts.it_value.tv_sec = timeout / USEC;
-			ts.it_value.tv_nsec = timeout % USEC * 1000;
-			ts.it_interval.tv_sec = interval / USEC;
-			ts.it_interval.tv_nsec = interval % USEC * 1000;
+			ts.it_value.tv_sec = timeout / USEC_PER_SEC;
+			ts.it_value.tv_nsec = timeout % USEC_PER_SEC * 1000;
+			ts.it_interval.tv_sec = interval / USEC_PER_SEC;
+			ts.it_interval.tv_nsec = interval % USEC_PER_SEC * 1000;
 			if(int ret = ::timerfd_settime(fd_,1,&ts,NULL); ret != 0)
 			{
 				LOG_ERROR("timerfd_settime ERROR,fd:%ld,ret:%d,name:%s",fd_,ret,ename_.c_str());
@@ -60,16 +61,16 @@ namespace sc
 		return 0;
 	}
 
-	void EventHandle::run_func(int64_t now, int fd, uint32_t event_flags)
+	void EventHandle::run_func(int64_t now, uint32_t event_flags)
 	{
 		if(event_type_ == IO_EVENT) 
 		{
-			io_func_(fd,event_flags);
+			io_func_(fd_,event_flags);
 		}
 		else 
 		{
 			static struct itimerspec curr_value;
-			timerfd_gettime(fd,&curr_value);
+			timerfd_gettime(fd_,&curr_value);
 			timer_func_(now);
 		}
 	}

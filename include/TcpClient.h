@@ -27,7 +27,7 @@ public:
 	void start();
 	void stop();
 
-	int connect(std::string ip,int port,MSG_FUNC message_callback,UINT64_FUNC established_callback);
+	uint64_t connect(std::string ip,int port,MSG_FUNC message_callback,UINT64_FUNC established_callback);
 	void disconnect(uint64_t fd_key);
 
 	void pool_dump();

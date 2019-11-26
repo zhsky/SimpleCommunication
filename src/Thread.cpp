@@ -4,7 +4,8 @@
 * @Last  : Payton
 */
 
-#include "Thread.h"
+#include <Thread.h>
+#include <Log.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <unistd.h>

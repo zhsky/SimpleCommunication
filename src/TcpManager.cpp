@@ -69,7 +69,7 @@ int TcpManager::start()
 {
 	if(!init_)
 	{
-		LOG_ERROR("ERROR NOT INIT");
+		LOG_STDEER("NOT INIT");
 		abort();
 	}
 	if(running_)
@@ -87,7 +87,7 @@ int TcpManager::start()
 		socket_loop_[i].start_loop();
 	}
 
-	packer_thread_->start(16);
+	packer_thread_->start(8);
 	this->main_thread_->start();
 	LOG_INFO("TcpManager start");
 	return 0;

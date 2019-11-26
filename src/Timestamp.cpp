@@ -10,18 +10,18 @@ namespace sc
 {
 	void Timestamp::normalize()
 	{
-		if(this->tv_.tv_usec >= USEC)
+		if(this->tv_.tv_usec >= USEC_PER_SEC)
 		{
 			do{
 				this->tv_.tv_sec++;
-				this->tv_.tv_usec -= USEC;
-			}while(this->tv_.tv_usec >= USEC);
+				this->tv_.tv_usec -= USEC_PER_SEC;
+			}while(this->tv_.tv_usec >= USEC_PER_SEC);
 		}
 		else if(this->tv_.tv_usec < 0)
 		{
 			do{
 				this->tv_.tv_sec--;
-				this->tv_.tv_usec += USEC;
+				this->tv_.tv_usec += USEC_PER_SEC;
 			}while(this->tv_.tv_usec < 0 && this->tv_.tv_sec > 0);
 		}
 	}

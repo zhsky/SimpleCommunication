@@ -3,6 +3,8 @@
 * @Author: Payton
 * @Last  : Payton
 */
+#ifndef _TASKTHREAD_H_
+#define _TASKTHREAD_H_
 
 #include <Common.h>
 
@@ -39,3 +41,4 @@ private:
 };
 
 }//namespace sc
+#endif //_TASKTHREAD_H_

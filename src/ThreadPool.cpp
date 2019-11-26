@@ -5,6 +5,7 @@
 */
 
 #include <ThreadPool.h>
+#include <Log.h>
 #include <assert.h>
 
 namespace sc

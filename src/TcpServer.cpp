@@ -137,7 +137,7 @@ int TcpServer::start()
 {
 	if(!init_)
 	{
-		LOG_ERROR("ERROR NOT INIT");
+		LOG_STDEER("NOT INIT");
 		abort();
 	}
 	if(running_)
@@ -182,7 +182,7 @@ void TcpServer::socket_init(uint32_t index)
 	handle->bind(func,listen_fd_[index],std::string(handle_name));
 	if(handle->fd() > 0 && this->tcp_manager_->add_acceptor(handle) == 0) return;
 
-	LOG_ERROR("index:%d add_handle %d ERROR",index,handle->fd());
+	LOG_STDEER("index:%d add_handle %d ERROR",index,handle->fd());
 	abort();
 }
 
@@ -190,7 +190,7 @@ void TcpServer::do_init_socket(uint32_t index)
 {
 	if((listen_fd_[index] = ::socket(AF_INET,SOCK_STREAM|SOCK_NONBLOCK,0)) < 0)
 	{
-		LOG_ERROR("ERROR socket %s",strerror(errno));
+		LOG_STDEER("socket %s",strerror(errno));
 		abort();
 	}
 
@@ -201,14 +201,14 @@ void TcpServer::do_init_socket(uint32_t index)
 
 	if(inet_pton(AF_INET,this->ip_.c_str(),&addr.sin_addr) < 0)
 	{
-		LOG_ERROR("ERROR inet_pton %s",strerror(errno));
+		LOG_STDEER("inet_pton %s",strerror(errno));
 		abort();
 	}
 	
 	int addr_flag = 1;
 	if(::setsockopt(listen_fd_[index],SOL_SOCKET,SO_REUSEADDR,&addr_flag,sizeof(addr_flag)) < 0)
 	{
-		LOG_ERROR("ERROR socket SO_REUSEADDR %s",strerror(errno));
+		LOG_STDEER("socket SO_REUSEADDR %s",strerror(errno));
 		abort();
 	}
 
@@ -217,20 +217,20 @@ void TcpServer::do_init_socket(uint32_t index)
 		int port_flag = 1;
 		if(::setsockopt(listen_fd_[index],SOL_SOCKET,SO_REUSEPORT,&port_flag,sizeof(port_flag)) < 0)
 		{
-			LOG_ERROR("ERROR socket SO_REUSEPORT %s",strerror(errno));
+			LOG_STDEER("socket SO_REUSEPORT %s",strerror(errno));
 			abort();
 		}
 	}
 	
 	if(::bind(listen_fd_[index], (struct sockaddr *)&addr, sizeof(addr)) < 0)
 	{
-		LOG_ERROR("ERROR socket bind %s",strerror(errno));
+		LOG_STDEER("socket bind %s",strerror(errno));
 		abort();
 	}
 	
 	if(::listen(listen_fd_[index], 1024) < 0)
 	{
-		LOG_ERROR("ERROR socket listen %s",strerror(errno));
+		LOG_STDEER("socket listen %s",strerror(errno));
 		abort();
 	}
 }

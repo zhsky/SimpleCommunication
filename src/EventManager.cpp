@@ -4,6 +4,7 @@
 * @Last  : Payton
 */
 #include <EventManager.h>
+#include <Log.h>
 #include <EventHandle.h>
 #include <Timestamp.h>
 #include <ThreadMutex.h>
@@ -57,13 +58,12 @@ namespace sc
 		struct epoll_event event;
 		memset(&event, 0, sizeof(event));
 
-		event.data.fd = handle_ptr->fd();
 		event.events |= handle_ptr->event_flag();
+		event.data.ptr = handle_ptr;
 
-		if(::epoll_ctl(this->epoll_fd_,EPOLL_CTL_MOD,event.data.fd,&event) < 0)
+		if(::epoll_ctl(this->epoll_fd_,EPOLL_CTL_MOD,fd,&event) < 0)
 		{
-			perror("epoll_ctl EPOLL_CTL_MOD:");
-			LOG_ERROR("epoll_ctl ERROR EPOLL_CTL_MOD fd:%d, writev %s",event.data.fd,strerror(errno));
+			LOG_ERROR("epoll_ctl ERROR EPOLL_CTL_MOD fd:%d, writev %s",fd,strerror(errno));
 			return -1;
 		}
 
@@ -96,34 +96,35 @@ namespace sc
 	{
 		assert_in_thread();
 		const std::string& event_name = handle_ptr->ename();
+		int fd = handle_ptr->fd();
 		if(handler_map_.find(handle_ptr->fd()) != handler_map_.end())
 		{
-			LOG_ERROR("REPEAT %ld,%d,%s",handle_ptr->fd(),handle_ptr->event_type(),event_name.c_str());
+			LOG_ERROR("REPEAT %ld,%d,%s",fd,handle_ptr->event_type(),event_name.c_str());
 			return;
 		}
 
 		struct epoll_event event;
 		memset(&event, 0, sizeof(event));
 
-		event.data.fd = handle_ptr->fd();
 		event.events |= handle_ptr->event_flag();
+		event.data.ptr = handle_ptr;
 
 		{
 			WGUARD_LOCK(__guard_lock,rwlock_);
 			handler_map_[handle_ptr->fd()] = handle_ptr;
 		}
 
-		if(::epoll_ctl(this->epoll_fd_,EPOLL_CTL_ADD,event.data.fd,&event) < 0)
+		if(::epoll_ctl(this->epoll_fd_,EPOLL_CTL_ADD,fd,&event) < 0)
 		{
 			perror("epoll_ctl EPOLL_CTL_ADD:");
-			LOG_ERROR("epoll_ctl ERROR EPOLL_CTL_ADD fd:%d, writev %s",event.data.fd,strerror(errno));
+			LOG_ERROR("epoll_ctl ERROR EPOLL_CTL_ADD fd:%d, writev %s",fd,strerror(errno));
 			{
 				WGUARD_LOCK(__guard_lock,rwlock_);
-				handler_map_.erase(event.data.fd);
+				handler_map_.erase(fd);
 			}
 			return;
 		}
-		LOG_INFO("fd:%ld, name:%s",event.data.fd,event_name.c_str());
+		LOG_INFO("fd:%ld, name:%s",fd,event_name.c_str());
 		return;
 	}
 
@@ -148,7 +149,6 @@ namespace sc
 
 		if(::epoll_ctl(this->epoll_fd_,EPOLL_CTL_DEL,fd,nullptr) < 0)
 		{
-			perror("epoll_ctl:");
 			LOG_ERROR("epoll_ctl ERROR EPOLL_CTL_DEL %ld,errno:%d,%s",fd,errno,strerror(errno));
 			return;
 		}
@@ -218,10 +218,8 @@ namespace sc
 		}
 		for(int i = 0; i < fd_num; ++i)
 		{
-			if(auto iter = handler_map_.find(this->events_[i].data.fd); iter != handler_map_.end())
-			{
-				iter->second->run_func(long_unixstamp(),this->events_[i].data.fd,this->events_[i].events);
-			}
+			EventHandle* handle_ptr = static_cast<EventHandle*>(this->events_[i].data.ptr);
+			handle_ptr->run_func(long_unixstamp(),this->events_[i].events);
 		}
 	}
 }//namespace sc

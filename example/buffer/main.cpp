@@ -7,6 +7,7 @@
 #include <memory>
 #include <cstring>
 #include <Log.h>
+#include "LogThread.h"
 
 
 using namespace sc;
@@ -64,6 +65,7 @@ void read_buff(std::shared_ptr<Buffer>& buffer)
 
 int main()
 {
+	LOG_INSTANCE->start();
 	std::shared_ptr<Buffer> buffer(new Buffer(8));
 	write_buff(buffer);
 	read_buff(buffer);
@@ -74,5 +76,7 @@ int main()
 	buffer_1024->swap(*buffer);
 	LOG_INFO("writeableBytes %d",buffer->writeableBytes());
 	LOG_INFO("writeableBytes %d",buffer_1024->is_readable(10));
+
+	LOG_INSTANCE->stop();
 	return 0;
 }

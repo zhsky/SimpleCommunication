@@ -27,7 +27,7 @@ public:
 
 	void set_event_flag(uint32_t flags){this->event_flags_ = flags;}
 	uint32_t event_flag(){return this->event_flags_;}
-	void run_func(int64_t now, int fd, uint32_t event_flags);
+	void run_func(int64_t now, uint32_t event_flags);
 	int event_type(){return event_type_;}
 	int fd(){return fd_;}
 	const std::string& ename(){return ename_;}

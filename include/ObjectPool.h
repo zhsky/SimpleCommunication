@@ -3,7 +3,11 @@
 * @Author: Payton
 * @Last  : Payton
 */
+#ifndef _OBJECTPOOL_H_
+#define _OBJECTPOOL_H_
+
 #include <Common.h>
+#include <Log.h>
 #include <noncopyable.h>
 #include <list>
 #include <map>
@@ -46,14 +50,12 @@ private:
 template <typename T>
 ObjectPool<T>::ObjectPool(int block_size):block_size_(block_size)
 {
-	LOG_INFO("ObjectPool<%s> INIT",typeid(T).name());
 	this->make_new_block();
 }
 
 template <typename T>
 ObjectPool<T>::~ObjectPool()
 {
-	LOG_INFO("ObjectPool<%s> deconstruct",typeid(T).name());
 	this->free_all();
 }
 
@@ -74,7 +76,6 @@ typename ObjectPool<T>::BlockNode& ObjectPool<T>::make_new_block()
 	obj_list._begin = reinterpret_cast<int64_t>(obj_list.front());
 	obj_list._end = reinterpret_cast<int64_t>(obj_list.back());
 
-	LOG_INFO("ObjectPool<%s> new_block begin:%ld,end:%ld",typeid(T).name(),obj_list._begin,obj_list._end);
 	this->block_list_.emplace_back(key,std::move(obj_list));
 	return this->block_list_.back();
 }
@@ -170,3 +171,5 @@ void ObjectPool<T>::push(T* obj)
 
 
 }//namespace sc
+
+#endif //_OBJECTPOOL_H_

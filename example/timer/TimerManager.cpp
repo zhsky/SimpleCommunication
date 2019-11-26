@@ -11,7 +11,9 @@
 using namespace sc;
 void TimerManager::handler_timeout(int64_t now)
 {
-	LOG_INFO("timeout:%ld",now / USEC);
+	static int64_t last = 0;
+	LOG_INFO("timeout:%ld:%ld",now,now - last);
+	last = now;
 }
 
 void TimerManager::remove_timer()
@@ -24,13 +26,14 @@ int TimerManager::start()
 	sc::EventHandle* timer_handler = event_pool_.pop();
 	timer_handler->bind(
 		std::bind(&TimerManager::handler_timeout,this,std::placeholders::_1),
-		sc::long_unixstamp() + 2 * USEC,
-		USEC,
+		sc::long_unixstamp() + 2 * USEC_PER_SEC,
+		100,
 		"timeout_handle"
 	);
 	if(timer_handler->fd() > 0)
 	{
-		LOG_INFO("add timer_handler");
+		LOG_INFO("add timer_handler:%d",timer_handler->fd());
+		timer_handler->set_recycle_func(std::bind(&decltype(event_pool_)::push,&event_pool_,std::placeholders::_1));
 		this->timer_fd_ = timer_handler->fd();
 		event_manager_.add_handle(timer_handler);
 	}

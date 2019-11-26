@@ -6,7 +6,7 @@
 #include <vector>
 #include <memory>
 #include <Log.h>
-#include <ObjectPool.h>
+#include "LogThread.h"
 
 using namespace sc;
 
@@ -42,7 +42,9 @@ void func1()
 
 int main()
 {
+	LOG_INSTANCE->start();
 	func1();
+	LOG_INSTANCE->stop();
 	return 0;
 }
 

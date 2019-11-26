@@ -11,7 +11,10 @@
 #include <Buffer.h>
 #include <ClientEntity.h>
 #include <string.h>
+#include "LogThread.h"
+
 using namespace sc;
+bool running;
 
 void server_handle_msg(Buffer* buff)
 {
@@ -66,7 +69,7 @@ void signal_handle(int signo)
 	else if(signo == 51)
 	{
 		TCPSERVER_INSTANCE->stop();
-		exit(0);
+		running = false;
 	}
 	else if(signo == 52)
 	{
@@ -75,36 +78,40 @@ void signal_handle(int signo)
 	else if(signo == 53)
 	{
 		TCPCLIENT_INSTANCE->stop();
-		exit(0);
+		running = false;
 	}
 }
 
 int start_server()
 {
+	running = true;
 	signal(50,signal_handle);
 	signal(51,signal_handle);
 	TCPSERVER_INSTANCE->init("0.0.0.0",6000,10);
 	TCPSERVER_INSTANCE->set_msg_callback(server_handle_msg);
 	TCPSERVER_INSTANCE->start();
-	while(true) sleep(10000);
+	while(running) sleep(10000);
 	return 0;
 }
 
 int start_client()
 {
+	running = true;
 	signal(52,signal_handle);
 	signal(53,signal_handle);
 	TCPCLIENT_INSTANCE->start();
 	TCPCLIENT_INSTANCE->connect("192.168.16.117",6000,client_handle_msg,client_send_data);
-	while(true) sleep(10000);
+	while(running) sleep(10000);
 	return 0;
 }
 
 int main(int argc, char *argv[])
 {
+	LOG_INSTANCE->start();
 	if(argc == 2)
 	{
 		if(strcmp(argv[1],"server") == 0) start_server();
 		if(strcmp(argv[1],"client") == 0) start_client();
 	}
+	LOG_INSTANCE->stop();
 }

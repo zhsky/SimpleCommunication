@@ -7,7 +7,6 @@
 #define _COMMON_H_
 
 #include <functional>
-#include "Log.h"
 namespace sc
 {
 	class Buffer;
@@ -16,7 +15,7 @@ namespace sc
 	class WMutexGuard;
 	#define IO_EVENT	0x1
 	#define TIMER_EVENT	0x2
-	#define USEC	(1000 * 1000)
+	#define USEC_PER_SEC	(1000 * 1000)
 	#define SECOND	1
 	#define MINUTE	60
 	#define HOUR	(60 * MINUTE)

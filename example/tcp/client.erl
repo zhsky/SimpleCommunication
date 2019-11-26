@@ -2,7 +2,7 @@
 %% @Author:	Payton
 %% @Date:	2019-09-04 18:31:20
 %% @Doc:	DESC
-%% @Last:	2019-11-25 17:18:17
+%% @Last:	2019-11-26 17:53:44
 %% ====================================================================
 
 -module(client).
@@ -23,7 +23,7 @@
 %% ====================================================================
 
 main(_Num) ->
-	send_big_data(_Num).
+	socket_connect(_Num).
 
 send_recv(_Num) ->
 	{ok, Socket} = gen_tcp:connect({192,168,16,240},6000,[binary,{active, false}, {packet, 0}]),

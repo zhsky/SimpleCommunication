@@ -6,6 +6,7 @@
 #include <Log.h>
 #include <Timestamp.h>
 #include "Common.h"
+#include "LogThread.h"
 
 using namespace sc;
 
@@ -43,12 +44,14 @@ void test()
 	t1 -= t1;
 	LOG_INFO("valid,long_unixstamp:%ld,%d",t1.long_unixstamp(),t1.valid());
 
-	t1.add_time(0,USEC);
+	t1.add_time(0,USEC_PER_SEC);
 	LOG_INFO("add_test tv_sec:%ld,tv_usec:%ld",t1.tv().tv_sec,t1.tv().tv_usec);
 }
 
 int main()
 {
+	LOG_INSTANCE->start();
 	test();
+	LOG_INSTANCE->stop();
 	return 0;
 }

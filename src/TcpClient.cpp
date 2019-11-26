@@ -59,7 +59,7 @@ void TcpClient::stop()
 	this->tcp_manager_->stop();
 }
 
-int TcpClient::connect(std::string ip,int port,MSG_FUNC message_callback,UINT64_FUNC established_callback)
+uint64_t TcpClient::connect(std::string ip,int port,MSG_FUNC message_callback,UINT64_FUNC established_callback)
 {
 	int connect_fd = 0;
 

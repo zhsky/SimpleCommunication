@@ -4,6 +4,9 @@
 * @Last  : Payton
 */
 
+#ifndef _BUFFER_H_
+#define _BUFFER_H_
+
 #include <vector>
 #include <algorithm>
 #include <stdint.h>
@@ -16,7 +19,7 @@ namespace sc
 class Buffer
 {
 public:
-	explicit Buffer(size_t init_size = 8 * 1024):buff_(init_size),read_index_(0),write_index_(0){}
+	explicit Buffer(size_t init_size = 8 * 1024):buff_(init_size,'\0'),read_index_(0),write_index_(0){}
 
 	//=======================================| Int8 |=======================================
 	void writeInt8(int8_t data)
@@ -241,8 +244,13 @@ public:
 	{
 		if(writeableBytes() < len)
 		{
-			buff_.resize(write_index_ + len);
+			buff_.resize(write_index_ + len,'\0');
 		}
+	}
+	void reset()
+	{
+		read_index_ = 0;
+		write_index_ = 0;
 	}
 private:
 	std::vector<char> buff_;
@@ -251,3 +259,4 @@ private:
 };
 
 }//namespace sc
+#endif //_BUFFER_H_
