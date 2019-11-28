@@ -66,7 +66,8 @@ void signal_handle(int signo)
 	else if(signo == 51)
 	{
 		TCPSERVER_INSTANCE->stop();
-		running = 0;	}
+		running = 0;	
+	}
 	else if(signo == 52)
 	{
 		TCPCLIENT_INSTANCE->pool_dump();
@@ -74,7 +75,8 @@ void signal_handle(int signo)
 	else if(signo == 53)
 	{
 		TCPCLIENT_INSTANCE->stop();
-		running = 0;	}
+		running = 0;	
+	}
 	else if(signo == SIGINT)
 	{
 		if(running == 1) TCPSERVER_INSTANCE->stop();
@@ -85,7 +87,8 @@ void signal_handle(int signo)
 
 int start_server()
 {
-		running = 1;	signal(50,signal_handle);
+	running = 1;	
+	signal(50,signal_handle);
 	signal(51,signal_handle);
 	TCPSERVER_INSTANCE->init("0.0.0.0",6000,10);
 	TCPSERVER_INSTANCE->set_msg_callback(server_handle_msg);
@@ -96,14 +99,16 @@ int start_server()
 
 int start_client()
 {
-	running = 2;	signal(52,signal_handle);
+	running = 2;	
+	signal(52,signal_handle);
 	signal(53,signal_handle);
 	TCPCLIENT_INSTANCE->start();
 	for(int i = 0; i < 100; ++i)
 	{
 		TCPCLIENT_INSTANCE->connect("192.168.16.117",6000,client_handle_msg,client_send_data);
 	}
-	while(running) sleep(10000);	return 0;
+	while(running) sleep(10000);
+	return 0;
 }
 
 int main(int argc, char *argv[])
