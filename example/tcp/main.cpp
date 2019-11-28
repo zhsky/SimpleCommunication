@@ -12,10 +12,8 @@
 #include <ClientEntity.h>
 #include <string.h>
 #include "LogThread.h"
-
 using namespace sc;
-bool running;
-
+int running;
 void server_handle_msg(Buffer* buff)
 {
 	LOG_INFO("readableBytes %ld",buff->readableBytes());
@@ -48,13 +46,12 @@ void client_handle_msg(Buffer* buff)
 void client_send_data(uint64_t fd_key)
 {
 	Buffer* buff = TCPCLIENT_INSTANCE->pop_buffer();
-
-	std::string data = "test client";
-	uint16_t len = data.length();
+	std::string data(1024 * 1024,'1');
+	uint32_t len = data.length();
 	uint32_t buff_size = data.length() + sizeof(uint16_t);
 	buff->writeInt64(fd_key);
 	buff->writeInt32(buff_size);
-	buff->writeInt16(len);
+	buff->writeInt32(len);
 	buff->append(data.c_str(),len);
 	TCPCLIENT_INSTANCE->push_send_data(buff);
 
@@ -69,8 +66,7 @@ void signal_handle(int signo)
 	else if(signo == 51)
 	{
 		TCPSERVER_INSTANCE->stop();
-		running = false;
-	}
+		running = 0;	}
 	else if(signo == 52)
 	{
 		TCPCLIENT_INSTANCE->pool_dump();
@@ -78,14 +74,18 @@ void signal_handle(int signo)
 	else if(signo == 53)
 	{
 		TCPCLIENT_INSTANCE->stop();
-		running = false;
+		running = 0;	}
+	else if(signo == SIGINT)
+	{
+		if(running == 1) TCPSERVER_INSTANCE->stop();
+		if(running == 2) TCPCLIENT_INSTANCE->stop();
+		running = 0;
 	}
 }
 
 int start_server()
 {
-	running = true;
-	signal(50,signal_handle);
+		running = 1;	signal(50,signal_handle);
 	signal(51,signal_handle);
 	TCPSERVER_INSTANCE->init("0.0.0.0",6000,10);
 	TCPSERVER_INSTANCE->set_msg_callback(server_handle_msg);
@@ -96,19 +96,20 @@ int start_server()
 
 int start_client()
 {
-	running = true;
-	signal(52,signal_handle);
+	running = 2;	signal(52,signal_handle);
 	signal(53,signal_handle);
 	TCPCLIENT_INSTANCE->start();
-	TCPCLIENT_INSTANCE->connect("192.168.16.117",6000,client_handle_msg,client_send_data);
-	while(running) sleep(10000);
-	return 0;
+	for(int i = 0; i < 100; ++i)
+	{
+		TCPCLIENT_INSTANCE->connect("192.168.16.117",6000,client_handle_msg,client_send_data);
+	}
+	while(running) sleep(10000);	return 0;
 }
 
 int main(int argc, char *argv[])
 {
-	LOG_INSTANCE->start();
-	if(argc == 2)
+	signal(SIGINT, signal_handle);
+	LOG_INSTANCE->start();	if(argc == 2)
 	{
 		if(strcmp(argv[1],"server") == 0) start_server();
 		if(strcmp(argv[1],"client") == 0) start_client();

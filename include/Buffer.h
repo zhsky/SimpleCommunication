@@ -163,15 +163,15 @@ public:
 	//=======================================| string |=======================================
 	void writeString(const std::string& data)
 	{
-		uint16_t len = data.length();
-		writeInt16(len);
+		uint32_t len = data.length();
+		writeInt32(len);
 		if(len <= 0) return;
 		append(data.c_str(),len);
 	}
 	void peekString(std::string& data)
 	{
-		int16_t len = 0;
-		peekInt16(len);
+		uint32_t len = 0;
+		peekInt32(len);
 		if(len <= 0) return;
 		assert(is_readable(sizeof(int16_t) + len));
 		data.resize(len);

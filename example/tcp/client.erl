@@ -2,7 +2,7 @@
 %% @Author:	Payton
 %% @Date:	2019-09-04 18:31:20
 %% @Doc:	DESC
-%% @Last:	2019-11-26 17:53:44
+%% @Last:	2019-11-28 17:27:48
 %% ====================================================================
 
 -module(client).
@@ -23,14 +23,18 @@
 %% ====================================================================
 
 main(_Num) ->
-	socket_connect(_Num).
+	multi_send_recv(_Num).
+
+multi_send_recv(_Num) ->
+	[send_recv(_Num) || _ <- lists:seq(1,_Num)],
+	timer:sleep(10000).
 
 send_recv(_Num) ->
 	{ok, Socket} = gen_tcp:connect({192,168,16,240},6000,[binary,{active, false}, {packet, 0}]),
 	Fun = fun(Loop) ->
 		case gen_tcp:recv(Socket,0) of
 			 {ok, Packet} -> 
-			 	io:format("recv size:~p~n",[byte_size(Packet)]);
+				send_data(Socket);
 			 {error, closed} ->
 			 	exit(normal);
 			 {error, Reason} ->
@@ -41,10 +45,8 @@ send_recv(_Num) ->
 	spawn(fun() ->
 		Fun(Fun)
 	end),
-	lists:foreach(fun(_) ->
-		send_data(Socket)
-	end,lists:seq(1,10)),
-	timer:sleep(5000),
+	send_data(Socket),
+	timer:sleep(10000),
 	gen_tcp:close(Socket).
 
 send_big_data(_Num) ->
@@ -59,7 +61,7 @@ send_big_data(_Num) ->
 	Content = Bin,
 	ContentLen = byte_size(Content),
 
-	Data = <<Id:64/big,NameSize:16/big,Name/binary,ContentLen:16/big,Content/binary>>,
+	Data = <<Id:64/big,NameSize:32/big,Name/binary,ContentLen:32/big,Content/binary>>,
 	DataLen = byte_size(Data),
 	Msg = <<DataLen:32/big,Data/binary>>,
 	gen_tcp:send(Socket,Msg),
@@ -101,7 +103,7 @@ loop_wait(Failed,N) ->
 	end.
 
 send_data(Socket) ->
-	SendBytes = 1 * 1024,
+	SendBytes = 1 * 1024 * 1024,
 	Bin = list_to_binary([1 || _ <- lists:seq(1,SendBytes)]),
 
 	Id = 16#ffffff,
@@ -110,7 +112,7 @@ send_data(Socket) ->
 	Content = Bin,
 	ContentLen = byte_size(Content),
 
-	Data = <<Id:64/big,NameSize:16/big,Name/binary,ContentLen:16/big,Content/binary>>,
+	Data = <<Id:64/big,NameSize:32/big,Name/binary,ContentLen:32/big,Content/binary>>,
 	DataLen = byte_size(Data),
 	Msg = <<DataLen:32/big,Data/binary>>,
 	gen_tcp:send(Socket,Msg),

@@ -2,7 +2,7 @@
 %% @Author:	Payton
 %% @Date:	2019-09-04 08:31:20
 %% @Doc:	DESC
-%% @Last:	2019-11-25 21:26:59
+%% @Last:	2019-11-28 16:57:07
 %% ====================================================================
 
 -module(server).
@@ -34,7 +34,8 @@ main() ->
 loop_accept(ListenSocket) ->
 	case gen_tcp:accept(ListenSocket) of
 		{ok, Socket} ->
-			spawn(fun() -> handle_socket(Socket) end);
+			spawn(fun() -> handle_socket(Socket) end),
+			loop_accept(ListenSocket);
 		Reason ->
 			io:format("socket_accept_fail:~p~n",[Reason]),
 			loop_accept(ListenSocket)
@@ -43,7 +44,6 @@ loop_accept(ListenSocket) ->
 handle_socket(Socket) ->
 	case gen_tcp:recv(Socket,0) of
 		 {ok, Packet} ->
-		 	io:format("recv size:~p~n",[byte_size(Packet)]),
 		 	gen_tcp:send(Socket,Packet);
 		 {error, closed} ->
 		 	exit(normal);

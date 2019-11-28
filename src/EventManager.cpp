@@ -205,7 +205,7 @@ namespace sc
 	void EventManager::loop_io()
 	{
 		int fd_num = ::epoll_wait(this->epoll_fd_, &*(this->events_.begin()), this->events_.size(), EVENT_TIMEOUT);
-		if(fd_num == 0) return;
+		if(fd_num == 0 || quit_) return;
 		if(fd_num < 0 && errno != EINTR)
 		{
 			perror("epoll_wait:");
