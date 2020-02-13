@@ -173,14 +173,14 @@ public:
 		uint32_t len = 0;
 		peekInt32(len);
 		if(len <= 0) return;
-		assert(is_readable(sizeof(int16_t) + len));
+		assert(is_readable(sizeof(uint32_t) + len));
 		data.resize(len);
-		memcpy(const_cast<char*>(data.c_str()),readptr() + sizeof(int16_t),len);
+		memcpy(const_cast<char*>(data.c_str()),readptr() + sizeof(uint32_t),len);
 	}
 	void readString(std::string& data)
 	{
 		peekString(data);
-		read_index_ += sizeof(int16_t) + data.length();
+		read_index_ += sizeof(uint32_t) + data.length();
 	}
 
 public:

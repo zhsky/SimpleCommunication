@@ -59,7 +59,9 @@ Log::~Log()
 {
 	this->running_ = false;
 	delete this->loop_thread_;
+	this->loop_thread_ = nullptr;
 	delete this->file_;
+	this->file_ = nullptr;
 	this->log_list_.clear();
 	this->write_list_.clear();
 }

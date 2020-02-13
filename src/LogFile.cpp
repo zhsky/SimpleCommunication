@@ -81,7 +81,7 @@ void LogFile::check_upadte_fp()
 void LogFile::append(const char* log,size_t len)
 {
 	size_t write_len = fwrite_unlocked(log,1,len,fp_);
-	size_t remain = write_len;
+	size_t remain = len;
 	remain -= write_len;
 	while(remain > 0)
 	{
